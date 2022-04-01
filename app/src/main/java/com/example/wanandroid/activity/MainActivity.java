@@ -14,7 +14,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
@@ -43,89 +42,74 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.wanandroid.R;
-import com.example.wanandroid.bean.Article;
 import com.example.wanandroid.fragment.ChapterFragment;
 import com.example.wanandroid.fragment.HomeFragment;
 import com.example.wanandroid.utils.ImgTransUtils;
+import com.example.wanandroid.utils.ThreadPoolManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
-    private List<Article> articleList;
     private DrawerLayout mDrawerLayout;
-    private boolean isHide = true;   //设置为隐藏
-    private RecyclerView recyclerView;
-    private TextView tvName;
-    private ImageView imgAvatar;
-    private int page = 0;
-    public  static SharedPreferences mPref;
-    private Uri imageUri;
-    private ViewPager mViewPager;
-    private NavigationView navigationView;
-    private List<Fragment> fragmentList;
-    private HomeFragment homeFragment;
-    private ChapterFragment chapterFragment;
-    private ViewPager contentViewPager;
-    private BottomNavigationView bottomNav;
-    private TextView tvTitle;
-    private RecyclerView mRecyclerView;
-    public MainActivity() {
-
-    }
-
+    private TextView mTvName;
+    private ImageView mImgAvatar;
+    private Uri mImageUri;
+    private List<Fragment> mFragmentList;
+    private ViewPager mContentViewPager;
+    private BottomNavigationView mBottomNav;
+    private TextView mTvTitle;
+    private  ThreadPoolManager mThreadPool;
+    private final String PROVIDER_AUTHORITY="com.example.wanandroid.fileprovider";
+    private final String IMAGE_CAPTURE_ACTION="android.media.action.IMAGE_CAPTURE";
+    public static String USER_NAME_KEY="userName";
+    private final String FILE_NAME="data";
+    private Runnable task;
     @SuppressLint("ResourceType")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //初始化成员变量
-        if(articleList == null)
-            articleList = new ArrayList<>();
-        if(fragmentList == null)
-            fragmentList = new ArrayList<>();
-        tvTitle = findViewById(R.id.bar_title);
-        homeFragment = new HomeFragment();
-        chapterFragment = new ChapterFragment();
-        contentViewPager = findViewById(R.id.content_view_Pager);
-        mRecyclerView = contentViewPager.findViewById(R.id.recycler_view);
-        bottomNav = findViewById(R.id.bottom_nav);
-        mPref = getSharedPreferences("data", MODE_PRIVATE);
-        navigationView =  findViewById(R.id.navigation_view);
-        View headLayout = navigationView.inflateHeaderView(R.layout.include_header);
-        tvName =  headLayout.findViewById(R.id.tv_name);
-        imgAvatar = headLayout.findViewById(R.id.img_avatar);
-        mViewPager =  findViewById(R.id.viewPager);
-        recyclerView =  findViewById(R.id.recycler_view);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
 
+        mFragmentList = new ArrayList<>();
+        mTvTitle = findViewById(R.id.bar_title);
+        mContentViewPager = findViewById(R.id.content_view_Pager);
+        mBottomNav = findViewById(R.id.bottom_nav);
+        NavigationView homeNavigationView = findViewById(R.id.navigation_view);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        mDrawerLayout = findViewById(R.id.drawerLayout);
+        View headLayout = homeNavigationView.inflateHeaderView(R.layout.include_header);
+        mTvName = headLayout.findViewById(R.id.tv_name);
+        mImgAvatar = headLayout.findViewById(R.id.img_avatar);
+        HomeFragment homeFragment = new HomeFragment();
+        ChapterFragment chapterFragment = new ChapterFragment();
+        SharedPreferences userPref = getSharedPreferences(FILE_NAME, MODE_PRIVATE);
         setSupportActionBar(toolbar);
-        fragmentList.add(homeFragment);
-        fragmentList.add(chapterFragment);
+        mFragmentList.add(homeFragment);
+        mFragmentList.add(chapterFragment);
+        mThreadPool = ThreadPoolManager.getInstance();
 
         //设置缓存页面的数量
-        contentViewPager.setOffscreenPageLimit(fragmentList.size());
-        contentViewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
+        mContentViewPager.setOffscreenPageLimit(mFragmentList.size());
+        mContentViewPager.setAdapter(new HomeViewPagerAdapter(getSupportFragmentManager()));
 
         //底部导航栏的子菜单项的点击事件
-        bottomNav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+        mBottomNav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 switch (item.getItemId()) {
                     case R.id.nav_home:
-                        contentViewPager.setCurrentItem(0);
-                        tvTitle.setText("玩Android Demo");
+                        mContentViewPager.setCurrentItem(0);
+                        mTvTitle.setText(R.string.app_name);
                         break;
                     case R.id.nav_chapter:
-                        contentViewPager.setCurrentItem(1);
-                        tvTitle.setText("公众号");
+                        mContentViewPager.setCurrentItem(1);
+                        mTvTitle.setText(R.string.chapter);
                         break;
                     default:
                         break;
@@ -135,16 +119,19 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //viewpager切换页面监听事件
-        contentViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+        mContentViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) { }
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
 
             @Override
             public void onPageSelected(int position) {
-                bottomNav.getMenu().getItem(position).setChecked(true);
+                mBottomNav.getMenu().getItem(position).setChecked(true);
             }
+
             @Override
-            public void onPageScrollStateChanged(int state) {}
+            public void onPageScrollStateChanged(int state) {
+            }
         });
 
         //设置 进入首页滑动菜单的按钮
@@ -155,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //子页面 菜单栏点击事件
-        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+        homeNavigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 switch (item.getItemId()) {
@@ -164,12 +151,12 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(i);
                         break;
                     case R.id.menu_exit: {
-                        if (tvName.getText().equals("未登录")) {
-                            Toast.makeText(MainActivity.this, "您还未登录！", Toast.LENGTH_SHORT).show();
+                        if (mTvName.getText().equals(getString(R.string.Initially_userName))) {
+                            Toast.makeText(MainActivity.this, getString(R.string.not_login), Toast.LENGTH_SHORT).show();
                         } else {
                             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-                            tvName.setText("未登录");
-                            imgAvatar.setImageResource(R.mipmap.ic_launcher_round);
+                            mTvName.setText(getString(R.string.Initially_userName));
+                            mImgAvatar.setImageResource(R.mipmap.ic_launcher_round);
                             startActivity(intent);
                         }
                     }
@@ -181,20 +168,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //登录成功之后设置侧滑页用户名
+        //设置侧滑页用户名
         Intent intent = getIntent();
-        String userName = intent.getStringExtra("userName");
+        String userName = intent.getStringExtra(USER_NAME_KEY);
         if (!TextUtils.isEmpty(userName)) {
-            tvName.setText(userName);
-        }
-        String imgInfo = mPref.getString(tvName.getText().toString(), "");
-        if (!imgInfo.equals("")) {
-            Bitmap bitmap = ImgTransUtils.StrToBit(imgInfo);
-            imgAvatar.setImageBitmap(bitmap);
+            mTvName.setText(userName);
+            String imgInfo = userPref.getString(userName, "");
+            if (!imgInfo.equals("")) {
+                Bitmap bitmap = ImgTransUtils.StrToBit(imgInfo);
+                mImgAvatar.setImageBitmap(bitmap);
+            }
         }
 
         //侧滑页用户名点击事件
-        tvName.setOnClickListener(new View.OnClickListener() {
+        mTvName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent i = new Intent(MainActivity.this, LoginActivity.class);
@@ -205,10 +192,10 @@ public class MainActivity extends AppCompatActivity {
         //侧滑页头像点击事件
         try {
             //imgAvatar = (ImageView) navigationView.getHeaderView(0).findViewById(R.id.img_avatar);
-            imgAvatar.setOnClickListener(new View.OnClickListener() {
+            mImgAvatar.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if (tvName.getText().toString().equals("未登录")) {
+                    if (mTvName.getText().toString().equals(getString(R.string.Initially_userName))) {
                         //此时用户未登录  点击头像跳转登陆界面
                         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
                         startActivity(intent);
@@ -223,30 +210,34 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    class MyAdapter extends FragmentPagerAdapter{
-        public MyAdapter(@NonNull FragmentManager fm) {
+    class HomeViewPagerAdapter extends FragmentPagerAdapter {
+        public HomeViewPagerAdapter(@NonNull FragmentManager fm) {
             super(fm);
         }
+
         @NonNull
         @Override
         public Fragment getItem(int position) {
-            return fragmentList.get(position);
+            return mFragmentList.get(position);
         }
+
         @Override
         public int getCount() {
-            return fragmentList.size();
+            return mFragmentList.size();
         }
     }
 
     //改变头像的图片 1.拍照 2.从图库选择
     private void changeImage() {
-        final String font[] = {"拍照", "从图库选择"};
+        final String takePhoto = "拍照";
+        final String fromAlbum = "从图库选择";
+        final String font[] = {takePhoto, fromAlbum};
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setItems(font, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 switch (font[which]) {
-                    case "拍照":
+                    case takePhoto:
                         //创建File对象，用于存储拍照后的图片
                         File outputImage = new File(getExternalCacheDir(), "output_image.jpg");
                         try {
@@ -258,16 +249,16 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                         if (Build.VERSION.SDK_INT >= 24) {
-                            imageUri = FileProvider.getUriForFile(MainActivity.this, "com.example.wanandroid.fileprovider", outputImage);
+                            mImageUri = FileProvider.getUriForFile(MainActivity.this, PROVIDER_AUTHORITY, outputImage);
                         } else {
-                            imageUri = Uri.fromFile(outputImage);
+                            mImageUri = Uri.fromFile(outputImage);
                         }
                         //启动相机程序
-                        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                        Intent intent = new Intent(IMAGE_CAPTURE_ACTION);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
                         startActivityForResult(intent, 1);
                         break;
-                    case "从图库选择":
+                    case fromAlbum:
                         //检查是否有读取存储文件的权限
                         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
@@ -280,9 +271,11 @@ public class MainActivity extends AppCompatActivity {
         }).setNegativeButton("Cancel", null)
                 .setPositiveButton("OK", null).create().show();
     }
+
     //打开相册
     private void openAlbum() {
-        Intent i = new Intent("android.intent.action.GET_CONTENT");
+        String GET_CONTENT_ACTION = "android.intent.action.GET_CONTENT";
+        Intent i = new Intent(GET_CONTENT_ACTION);
         i.setType("image/*");
         startActivityForResult(i, 2);
     }
@@ -295,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     openAlbum();
                 } else {
-                    Toast.makeText(this, "您拒绝了访问存储文件权限", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.refuse_grant), Toast.LENGTH_SHORT).show();
                 }
         }
     }
@@ -308,25 +301,25 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     try {
                         //将拍摄的照片显示出来
-                        Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
-                        imgAvatar.setImageBitmap(bitmap);
-                        new Thread(new Runnable() {
+                        Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(mImageUri));
+                        mImgAvatar.setImageBitmap(bitmap);
+                        task = new Runnable() {
                             @Override
                             public void run() {
                                 try {
-                                    SharedPreferences.Editor editor = getSharedPreferences("data", MODE_PRIVATE).edit();
-                                    String key = tvName.getText().toString();
+                                    SharedPreferences.Editor editor = getSharedPreferences(FILE_NAME, MODE_PRIVATE).edit();
+                                    String key = mTvName.getText().toString();
                                     editor.putString(key, ImgTransUtils.BitToStr(bitmap));
                                     editor.apply();
                                     Looper.prepare();
-                                    Toast.makeText(MainActivity.this, "缓存用户图片成功", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(MainActivity.this, getString(R.string.storage_picture_success), Toast.LENGTH_SHORT).show();
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
                             }
-                        }).start();
-
-                    } catch (FileNotFoundException e) {
+                        };
+                        mThreadPool.execute(task);
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
@@ -353,16 +346,18 @@ public class MainActivity extends AppCompatActivity {
         Uri uri = data.getData();
         if (DocumentsContract.isDocumentUri(this, uri)) {
             String docId = DocumentsContract.getDocumentId(uri);
-            if ("com.android.providers.media.documents".equals(uri.getAuthority())) {
+            String MEDIA_DOCUMENT_AUTHORITY = "com.android.providers.media.documents";
+            String DOWNLOAD_DOCUMENT_AUTHORITY = "com.android.providers.downloads.documents";
+            if (MEDIA_DOCUMENT_AUTHORITY.equals(uri.getAuthority())) {
                 String id = docId.split(":")[1];
                 String selection = MediaStore.Images.Media._ID + "=" + id;
                 imagePath = getImagePath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, selection);
-            } else if ("com.android.providers.downloads.documents".equals(uri.getAuthority())) {
-                Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.valueOf(docId));
+            } else if (DOWNLOAD_DOCUMENT_AUTHORITY.equals(uri.getAuthority())) {
+                String CONTENT_URI = "content://downloads/public_downloads";
+                Uri contentUri = ContentUris.withAppendedId(Uri.parse(CONTENT_URI), Long.valueOf(docId));
                 imagePath = getImagePath(contentUri, null);
             }
         } else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            //
             imagePath = getImagePath(uri, null);
         } else if ("file".equalsIgnoreCase(uri.getScheme())) {
             imagePath = uri.getPath();
@@ -394,24 +389,25 @@ public class MainActivity extends AppCompatActivity {
     private void displayImage(String imagePath) {
         if (imagePath != null) {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            imgAvatar.setImageBitmap(bitmap);
-            new Thread(new Runnable() {
+            mImgAvatar.setImageBitmap(bitmap);
+            task = new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        SharedPreferences.Editor editor = getSharedPreferences("data", MODE_PRIVATE).edit();
-                        String key = tvName.getText().toString();
+                        SharedPreferences.Editor editor = getSharedPreferences(FILE_NAME, MODE_PRIVATE).edit();
+                        String key = mTvName.getText().toString();
                         editor.putString(key, ImgTransUtils.BitToStr(bitmap));
                         editor.apply();
                         Looper.prepare();
-                        Toast.makeText(MainActivity.this, "缓存用户图片成功", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.storage_picture_success), Toast.LENGTH_SHORT).show();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            }).start();
+            };
+            mThreadPool.execute(task);
         } else {
-            Toast.makeText(this, "获取图片失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.get_picture_failure), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -439,4 +435,9 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mThreadPool.shutdown();
+    }
 }

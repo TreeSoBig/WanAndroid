@@ -1,6 +1,8 @@
 package com.example.wanandroid.activity;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -28,27 +30,26 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 
-public class SearchActivity extends BaseActivity {
-    private String responseWebData;
-    private CommonWeb commonWeb;
-    private TagFlowLayout commonWebFlowLayout;
-    private ArrayList<String> comWebUrls;
-    private ArrayList<String> comWebsites;
-    private TextView tv;
+public class SearchActivity extends AppCompatActivity {
+    private String mResponseWebData;
+    private CommonWeb mCommonWeb;
+    private TagFlowLayout mCommonWebFlowLayout;
+    private ArrayList<String> mComWebUrls;
+    private ArrayList<String> mComWebsites;
+    private TextView mTv;
+    public static final String TITLE = "title";
+    public static final String URL_DATA="url_data";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentLayout(R.layout.activity_search);
+        setContentView(R.layout.activity_search);
+        Toolbar mToolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        setTitle("");
-        if(comWebUrls==null){
-            comWebUrls = new ArrayList<>();
-        }
-        if(comWebsites==null){
-            comWebsites = new ArrayList<>();
-        }
-        commonWebFlowLayout = (TagFlowLayout)findViewById(R.id.friend_tagLayout);
+        mComWebUrls = new ArrayList<>();
+        mComWebsites = new ArrayList<>();
+        mCommonWebFlowLayout = findViewById(R.id.friend_tagLayout);
         searchWebSiteFromServer(UrlConstainer.baseUrl+UrlConstainer.FRIEND);
     }
 
@@ -67,42 +68,40 @@ public class SearchActivity extends BaseActivity {
         HttpUtils.sendOKHttpRequest(address, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Toast.makeText(SearchActivity.this,"请求搜索热词服务失败",Toast.LENGTH_SHORT).show();
+                Toast.makeText(SearchActivity.this,getString(R.string.request_commonWeb_failure),Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                responseWebData = response.body().string();
-                Log.d("TAG", "onResponse: "+responseWebData);
+                mResponseWebData = response.body().string();
                 Gson gson = new Gson();
-                commonWeb = gson.fromJson(responseWebData, CommonWeb.class);
+                mCommonWeb = gson.fromJson(mResponseWebData, CommonWeb.class);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (commonWeb != null && commonWeb.getErrorCode() == 0) {
-                            for (int i = 0; i < commonWeb.getData().size(); i++) {
-                                comWebsites.add(commonWeb.getData().get(i).getName());
-                                comWebUrls.add(commonWeb.getData().get(i).getLink());
+                        if (mCommonWeb != null && mCommonWeb.getErrorCode() == 0) {
+                            for (int i = 0; i < mCommonWeb.getData().size(); i++) {
+                                mComWebsites.add(mCommonWeb.getData().get(i).getName());
+                                mComWebUrls.add(mCommonWeb.getData().get(i).getLink());
                             }
-                            commonWebFlowLayout.setAdapter(new TagAdapter<String>(comWebsites){
+                            mCommonWebFlowLayout.setAdapter(new TagAdapter<String>(mComWebsites){
                                 @Override
                                 public View getView(FlowLayout parent, int position, String s)
                                 {
-                                    tv = new TextView(SearchActivity.this);
-                                    tv.setTextSize(15);
-                                    tv.setPadding(34,18,34,18);
-                                    tv.setBackgroundResource(R.drawable.tag);
-                                    tv.setText(s);
-                                    return tv;
+                                    mTv = new TextView(SearchActivity.this);
+                                    mTv.setTextSize(15);
+                                    mTv.setPadding(34,18,34,18);
+                                    mTv.setBackgroundResource(R.drawable.tag);
+                                    mTv.setText(s);
+                                    return mTv;
                                 }
                             });
-                            commonWebFlowLayout.setOnTagClickListener((view, position, parent) -> {
-                                //Toast.makeText(SearchActivity.this, comWebsites.get(position), Toast.LENGTH_SHORT).show();
-                                String name = comWebsites.get(position);
-                                String Url = comWebUrls.get(position);
+                            mCommonWebFlowLayout.setOnTagClickListener((view, position, parent) -> {
+                                String name = mComWebsites.get(position);
+                                String Url = mComWebUrls.get(position);
                                 Intent intent = new Intent(SearchActivity.this, ArticleDetailsActivity.class);
-                                intent.putExtra("title",name);
-                                intent.putExtra("url_data",Url);
+                                intent.putExtra(TITLE,name);
+                                intent.putExtra(URL_DATA,Url);
                                 startActivity(intent);
                                 return true;
                             });

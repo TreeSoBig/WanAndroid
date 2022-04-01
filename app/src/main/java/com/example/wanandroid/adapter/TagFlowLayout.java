@@ -22,9 +22,7 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
     private TagAdapter mTagAdapter;
     private boolean mAutoSelectEffect = true;
     private int mSelectedMax = -1;//-1为不限制数量
-    private static final String TAG = "TagFlowLayout";
     private MotionEvent mMotionEvent;
-
     private Set<Integer> mSelectedView = new HashSet<>();
 
 
@@ -48,7 +46,6 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
     {
         int cCount = getChildCount();
-
         for (int i = 0; i < cCount; i++)
         {
             TagView tagView = (TagView) getChildAt(i);
@@ -68,12 +65,6 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
 
     private OnSelectListener mOnSelectListener;
 
-    public void setOnSelectListener(OnSelectListener onSelectListener)
-    {
-        mOnSelectListener = onSelectListener;
-        if (mOnSelectListener != null) setClickable(true);
-    }
-
     public interface OnTagClickListener
     {
         boolean onTagClick(View view, int position, FlowLayout parent);
@@ -91,7 +82,7 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
     public void setAdapter(TagAdapter adapter)
     {
         mTagAdapter = adapter;
-        mTagAdapter.setOnDataChangedListener(this);
+        mTagAdapter.setOnDataChangedListener();
         mSelectedView.clear();
         changeAdapter();
 
@@ -173,20 +164,6 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
     }
 
 
-    public void setMaxSelectCount(int count)
-    {
-        if (mSelectedView.size() > count)
-        {
-            Log.w(TAG, "you has already select more than " + count + " views , so it will be clear .");
-            mSelectedView.clear();
-        }
-        mSelectedMax = count;
-    }
-
-    public Set<Integer> getSelectedList()
-    {
-        return new HashSet<Integer>(mSelectedView);
-    }
 
     private void doSelect(TagView child, int position)
     {
@@ -222,13 +199,6 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
             }
         }
     }
-
-    public TagAdapter getAdapter()
-    {
-        return mTagAdapter;
-    }
-
-
     private static final String KEY_CHOOSE_POS = "key_choose_pos";
     private static final String KEY_DEFAULT = "key_default";
 
@@ -305,13 +275,6 @@ public class TagFlowLayout extends FlowLayout implements TagAdapter.OnDataChange
             }
         }
         return null;
-    }
-
-    @Override
-    public void onChanged()
-    {
-        mSelectedView.clear();
-        changeAdapter();
     }
 
     public static int dip2px(Context context, float dpValue)

@@ -26,7 +26,7 @@ public class CommonWeb {
     public String getErrorMsg() {
         return errorMsg;
     }
-    public class Data {
+    public static class Data {
         private String category;
         private String icon;
         private int id;

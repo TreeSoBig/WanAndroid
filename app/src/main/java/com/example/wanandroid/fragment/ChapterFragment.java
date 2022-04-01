@@ -30,30 +30,30 @@ import okhttp3.Response;
 
 public class ChapterFragment extends Fragment {
     //显示标题
-    private TabLayout title;
+    private TabLayout mTitle;
     private ViewPager mViewPager;
-    private List<String> titleList;//标题头的数据
-    private List<String> idList;//公众号id的数据
-    private String address;
-    private List<ChapterDetailsFragment> fragmentList;//ViewPager显示的Fragment
-    private String responseData;
+    private List<String> mTitleList;//标题头的数据
+    private List<String> mIdList;//公众号id的数据
+    private List<ChapterDetailsFragment> mFragmentList;//ViewPager显示的Fragment
+    private String mResponseData;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_chapter,container,false);
-        title = (TabLayout) view.findViewById(R.id.chapter_title);
-        mViewPager = (ViewPager) view.findViewById(R.id.viewPager);
+        mTitle =  view.findViewById(R.id.chapter_title);
+        mViewPager = view.findViewById(R.id.viewPager);
         return view;
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        address = (UrlConstainer.baseUrl + UrlConstainer.CHAPTERS);
-        titleList = new ArrayList<>();
-        idList = new ArrayList<>();
-        fragmentList = new ArrayList<>();
-        requestTitle(address);
+        String urlAddress = (UrlConstainer.baseUrl + UrlConstainer.CHAPTERS);
+        mTitleList = new ArrayList<>();
+        mIdList = new ArrayList<>();
+        mFragmentList = new ArrayList<>();
+        requestTitle(urlAddress);
     }
     private void requestTitle(String address) {
         HttpUtils.sendOKHttpRequest(address, new Callback() {
@@ -64,25 +64,25 @@ public class ChapterFragment extends Fragment {
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                responseData = response.body().string();
+                mResponseData = response.body().string();
                 try {
-                    JSONObject jsonObject = new JSONObject(responseData);
+                    JSONObject jsonObject = new JSONObject(mResponseData);
                     JSONArray jsonArray = jsonObject.getJSONArray("data");
                     for (int i = 0; i < jsonArray.length(); i++) {
                         jsonObject = jsonArray.getJSONObject(i);
                         int id = jsonObject.getInt("id");
                         String name = jsonObject.getString("name");
-                        titleList.add(name);
-                        idList.add(String.valueOf(id));
+                        mTitleList.add(name);
+                        mIdList.add(String.valueOf(id));
                     }
-                    for (int i = 0; i < titleList.size(); i++) {
-                        fragmentList.add(new ChapterDetailsFragment(idList.get(i)));
+                    for (int i = 0; i < mTitleList.size(); i++) {
+                        mFragmentList.add(new ChapterDetailsFragment(mIdList.get(i)));
                     }
-                    title.setupWithViewPager(mViewPager);
+                    mTitle.setupWithViewPager(mViewPager);
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            mViewPager.setAdapter(new ChapterPagerAdapter(getChildFragmentManager(), titleList, fragmentList));
+                            mViewPager.setAdapter(new ChapterPagerAdapter(getChildFragmentManager(), mTitleList, mFragmentList));
                         }
                     });
                 } catch (Exception e) {

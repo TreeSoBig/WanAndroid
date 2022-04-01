@@ -1,7 +1,5 @@
 package com.example.wanandroid.bean;
 
-import com.google.gson.annotations.SerializedName;
-
 public class Advertise {
     private String desc;
     private int id;

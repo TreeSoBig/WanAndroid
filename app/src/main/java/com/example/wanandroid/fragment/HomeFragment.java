@@ -17,16 +17,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager.widget.ViewPager;
 
+import com.example.wanandroid.adapter.ArticleListAdapter;
 import com.example.wanandroid.custom.FloatButtonEvents;
 import com.example.wanandroid.R;
-import com.example.wanandroid.adapter.ArticleAdapter;
-import com.example.wanandroid.bean.Article;
 import com.example.wanandroid.bean.Advertise;
 import com.example.wanandroid.common.UrlConstainer;
 import com.example.wanandroid.utils.HttpUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -38,35 +38,38 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class HomeFragment extends Fragment {
-    String responseData = "";
-    private List<Article> articleData;
-    private SwipeRefreshLayout swipeRefresh;
-    private ArticleAdapter articleAdapter;
+    private String mResponseData;
+    private SwipeRefreshLayout mSwipeRefresh;
     private RecyclerView mRecyclerView;
-    private FloatingActionButton scrollBtnTop;
     private int page = 0;
     private ViewPager mViewPager;
-    private List<AdvertiseFragment> advertiseFragmentList;
-    private List<Advertise> advertiseData;
+    private List<AdvertiseFragment> mAdvertiseFragmentList;
+    private List<Advertise> mAdvertiseData;
+    private final List<String> mArticleTitleList = new ArrayList<>();
+    private final List<String> mArticleLinkList = new ArrayList<>();
+    private final List<Long> mArticleTimeList = new ArrayList<>();
+    private final List<String> mArticleAuthorList = new ArrayList<>();
+    private ArticleListAdapter mArticleListAdapter;
+    public final static String URL="Url";
+    public final static String TITLE="title";
+    public final static String LINK="link";
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fargment_home,container,false);
-        if(articleData == null){
-            articleData = new ArrayList<>();
-        }
         mViewPager =  view.findViewById(R.id.viewPager);
         mRecyclerView =  view.findViewById(R.id.recycler_view);
         queryFromServer(UrlConstainer.baseUrl + UrlConstainer.HOME_LIST.replace("{page}", String.valueOf(page)));
         page++;
         queryFromBannerServer(UrlConstainer.baseUrl + UrlConstainer.MAIN_BANNER);
-        advertiseFragmentList = new ArrayList<>();
-        scrollBtnTop = view.findViewById(R.id.btn_scroll_top);
-        //刷新recyclerview
-        swipeRefresh = view.findViewById(R.id.swipeRefresh);
-        swipeRefresh.setColorSchemeResources(com.google.android.material.R.color.design_default_color_primary);
-        swipeRefresh.setOnRefreshListener(() -> {
+        mAdvertiseFragmentList = new ArrayList<>();
+        FloatingActionButton scrollBtnTop = view.findViewById(R.id.btn_scroll_top);
+        mSwipeRefresh = view.findViewById(R.id.swipeRefresh);
+        mSwipeRefresh.setColorSchemeResources(com.google.android.material.R.color.design_default_color_primary);
+
+        //刷新recyclerList
+        mSwipeRefresh.setOnRefreshListener(() -> {
             refreshArticle(UrlConstainer.baseUrl + UrlConstainer.HOME_LIST.replace("{page}", String.valueOf(page)));
             page++;
         });
@@ -79,16 +82,16 @@ public class HomeFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 Looper.prepare();
-                Toast.makeText(getActivity(), "首页广告加载失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), getString(R.string.get_advertise_failure), Toast.LENGTH_SHORT).show();
             }
 
             @SuppressLint("ResourceType")
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                responseData = response.body().string();
-                advertiseData = new ArrayList<>();
+                mResponseData = response.body().string();
+                mAdvertiseData = new ArrayList<>();
                 try {
-                    JSONObject jsonObject = new JSONObject(responseData);
+                    JSONObject jsonObject = new JSONObject(mResponseData);
                     JSONArray jsonArray = jsonObject.getJSONArray("data");
                     for (int i = 0; i < jsonArray.length(); i++) {
                         jsonObject = jsonArray.getJSONObject(i);
@@ -96,7 +99,7 @@ public class HomeFragment extends Fragment {
                         String text = jsonObject.getString("title");
                         String link = jsonObject.getString("url");
                         Advertise advertise = new Advertise(imagePath, text, link);
-                        advertiseData.add(advertise);
+                        mAdvertiseData.add(advertise);
                     }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -104,22 +107,22 @@ public class HomeFragment extends Fragment {
                             for (int i = 0; i < 3; i++) {
                                 AdvertiseFragment viewpager_fragment = new AdvertiseFragment();
                                 Bundle bundle = new Bundle();
-                                bundle.putString("Url", advertiseData.get(i).getImagePath());
-                                bundle.putString("title", advertiseData.get(i).getTitle());
-                                bundle.putString("link", advertiseData.get(i).getUrl());
+                                bundle.putString(URL, mAdvertiseData.get(i).getImagePath());
+                                bundle.putString(TITLE, mAdvertiseData.get(i).getTitle());
+                                bundle.putString(LINK, mAdvertiseData.get(i).getUrl());
                                 viewpager_fragment.setArguments(bundle);
-                                advertiseFragmentList.add(viewpager_fragment);
+                                mAdvertiseFragmentList.add(viewpager_fragment);
                             }
                             mViewPager.setAdapter(new FragmentPagerAdapter(getChildFragmentManager()) {
                                 @NonNull
                                 @Override
                                 public Fragment getItem(int position) {
-                                    return advertiseFragmentList.get(position);
+                                    return mAdvertiseFragmentList.get(position);
                                 }
 
                                 @Override
                                 public int getCount() {
-                                    return advertiseFragmentList.size();
+                                    return mAdvertiseFragmentList.size();
                                 }
                             });
                         }
@@ -130,6 +133,7 @@ public class HomeFragment extends Fragment {
             }
         });
     }
+
     /**
      * @param address 刷新文章列表
      */
@@ -141,30 +145,45 @@ public class HomeFragment extends Fragment {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getActivity(), "获取文章信息失败", Toast.LENGTH_SHORT).show();
-                        swipeRefresh.setRefreshing(false);
+                        Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
+                        mSwipeRefresh.setRefreshing(false);
                     }
                 });
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                responseData = response.body().string();
-                parseJSON(responseData);
+                mResponseData = response.body().string();
+                JSONObject jsonObject;
+                try{
+                    jsonObject = new JSONObject(mResponseData);
+                    jsonObject = jsonObject.getJSONObject("data");
+                    JSONArray jsonArray = jsonObject.getJSONArray("datas");
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        jsonObject = jsonArray.getJSONObject(i);
+                        mArticleTitleList.add(jsonObject.getString("title"));
+                        mArticleAuthorList.add(jsonObject.getString("author"));
+                        mArticleLinkList.add(jsonObject.getString("link"));
+                        mArticleTimeList.add(jsonObject.getLong("publishTime"));
+                    }
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (!articleData.isEmpty()) {
+                        if (!mArticleTitleList.isEmpty()) {
                             LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
                             mRecyclerView.setLayoutManager(layoutManager);
-                            articleAdapter = new ArticleAdapter(articleData);
-                            articleAdapter.notifyDataSetChanged();
+                            mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
+                            mArticleListAdapter.notifyDataSetChanged();
                         } else {
-                            Toast.makeText(getActivity(), "获取文章信息失败", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
                         }
                         //表示刷新事件结束
-                        swipeRefresh.setRefreshing(false);
-                        Toast.makeText(getActivity(), "刷新成功，您又获取了一页文章", Toast.LENGTH_SHORT).show();
+                        mSwipeRefresh.setRefreshing(false);
+                        Toast.makeText(getActivity(), getString(R.string.refresh_success), Toast.LENGTH_SHORT).show();
 
                     }
                 });
@@ -178,41 +197,37 @@ public class HomeFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 Looper.prepare();
-                Toast.makeText(getActivity(), "获取文章信息失败", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                responseData = response.body().string();
+                mResponseData = response.body().string();
+                JSONObject jsonObject;
+                try {
+                    jsonObject = new JSONObject(mResponseData);
+                    jsonObject = jsonObject.getJSONObject("data");
+                    JSONArray jsonArray = jsonObject.getJSONArray("datas");
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        jsonObject = jsonArray.getJSONObject(i);
+                        mArticleTitleList.add(jsonObject.getString("title"));
+                        mArticleAuthorList.add(jsonObject.getString("author"));
+                        mArticleLinkList.add(jsonObject.getString("link"));
+                        mArticleTimeList.add(jsonObject.getLong("publishTime"));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        parseJSON(responseData);
                         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
                         mRecyclerView.setLayoutManager(layoutManager);
-                        articleAdapter = new ArticleAdapter(articleData);
-                        mRecyclerView.setAdapter(articleAdapter);
+                        mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
+                        mRecyclerView.setAdapter(mArticleListAdapter);
                     }
                 });
             }
         });
-    }
-    private void parseJSON(String jsonData) {
-        try {
-            JSONObject jsonObject = new JSONObject(jsonData);
-            jsonObject = jsonObject.getJSONObject("data");
-            JSONArray jsonArray = jsonObject.getJSONArray("datas");
-            for (int i = 0; i < jsonArray.length(); i++) {
-                jsonObject = jsonArray.getJSONObject(i);
-                String title = jsonObject.getString("title");
-                String author = jsonObject.getString("author");
-                String link = jsonObject.getString("link");
-                long publishTime = jsonObject.getLong("publishTime");
-                Article article = new Article(title, author, link, publishTime);
-                articleData.add(article);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }

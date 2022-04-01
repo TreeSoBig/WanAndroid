@@ -20,19 +20,20 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.wanandroid.R;
-import com.example.wanandroid.db.wanAndroidDBHelper;
+import com.example.wanandroid.db.WanAndroidDBHelper;
 
 public class RegisterActivity extends AppCompatActivity {
-    private EditText editAccount;
-    private EditText editPassword;
-    private EditText editOkPassword;
-    private ImageView ivEye;  //定义控件
-    private ImageView ivOkEye;
+    private EditText mEditAccount;
+    private EditText mEditPassword;
+    private EditText mEditOkPassword;
+    private ImageView mIvEye;  //定义控件
+    private ImageView mIvOkEye;
+    private WanAndroidDBHelper mDBHelper;
+    private SQLiteDatabase mDB;
     private boolean isHide;
-    private Button btnRegister;
-    private int VERSION = 3;
-    private wanAndroidDBHelper dbHelper;
-    private SQLiteDatabase db;
+    private String mAccount;
+    private String mPassword;
+    private String mOkPassword;
 
 
     @SuppressLint("Range")
@@ -44,17 +45,17 @@ public class RegisterActivity extends AppCompatActivity {
         Toolbar mToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        editAccount = (EditText) findViewById(R.id.edit_account);
-        editPassword = (EditText) findViewById(R.id.edit_password);
-        editOkPassword = (EditText) findViewById(R.id.edit_ok_password);
-        ivEye = (ImageView) findViewById(R.id.eye);
-        ivOkEye = (ImageView) findViewById(R.id.ok_eye);
-        btnRegister = (Button) findViewById(R.id.click_register);
-        ivEye.setImageResource(R.drawable.close);   //选择初始样貌为闭眼
-        ivOkEye.setImageResource(R.drawable.close);   //选择初始样貌为闭眼
+        mEditAccount = findViewById(R.id.edit_account);
+        mEditPassword = findViewById(R.id.edit_password);
+        mEditOkPassword = findViewById(R.id.edit_ok_password);
+        mIvEye = findViewById(R.id.eye);
+        mIvOkEye = findViewById(R.id.ok_eye);
+        Button btnRegister = findViewById(R.id.click_register);
+        mIvEye.setImageResource(R.drawable.close);   //选择初始样貌为闭眼
+        mIvOkEye.setImageResource(R.drawable.close);   //选择初始样貌为闭眼
         TransformationMethod method = PasswordTransformationMethod.getInstance();  //隐藏
-        editPassword.setTransformationMethod(method);
-        editOkPassword.setTransformationMethod(method);
+        mEditPassword.setTransformationMethod(method);
+        mEditOkPassword.setTransformationMethod(method);
 
         //Toolbar返回按钮点击事件
         mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
@@ -65,48 +66,48 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         //设置密码 眼睛图片点击事件
-        ivEye.setOnClickListener(new View.OnClickListener() {
+        mIvEye.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
                     case R.id.eye:
                         if (isHide == true) {
-                            ivEye.setImageResource(R.drawable.open);  //可见样貌
+                            mIvEye.setImageResource(R.drawable.open);  //可见样貌
                             HideReturnsTransformationMethod method = HideReturnsTransformationMethod.getInstance(); //可见
-                            editPassword.setTransformationMethod(method);
+                            mEditPassword.setTransformationMethod(method);
                             isHide = false;
                         } else {
-                            ivEye.setImageResource(R.drawable.close); //不可见样貌
+                            mIvEye.setImageResource(R.drawable.close); //不可见样貌
                             TransformationMethod method = PasswordTransformationMethod.getInstance();  //隐藏
-                            editPassword.setTransformationMethod(method);
+                            mEditPassword.setTransformationMethod(method);
                             isHide = true;
                         }
-                        int index = editPassword.getText().toString().length();
-                        editPassword.setSelection(index);
+                        int index = mEditPassword.getText().toString().length();
+                        mEditPassword.setSelection(index);
                         break;
                 }
             }
         });
 
         //确认密码 眼睛图片点击事件
-        ivOkEye.setOnClickListener(new View.OnClickListener() {
+        mIvOkEye.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
                     case R.id.ok_eye:
                         if (isHide == true) {
-                            ivOkEye.setImageResource(R.drawable.open);  //可见样貌
+                            mIvOkEye.setImageResource(R.drawable.open);  //可见样貌
                             HideReturnsTransformationMethod method = HideReturnsTransformationMethod.getInstance(); //可见
-                            editOkPassword.setTransformationMethod(method);
+                            mEditOkPassword.setTransformationMethod(method);
                             isHide = false;
                         } else {
-                            ivOkEye.setImageResource(R.drawable.close); //不可见样貌
+                            mIvOkEye.setImageResource(R.drawable.close); //不可见样貌
                             TransformationMethod method = PasswordTransformationMethod.getInstance();  //隐藏
-                            editOkPassword.setTransformationMethod(method);
+                            mEditOkPassword.setTransformationMethod(method);
                             isHide = true;
                         }
-                        int index = editOkPassword.getText().toString().length();
-                        editOkPassword.setSelection(index);
+                        int index = mEditOkPassword.getText().toString().length();
+                        mEditOkPassword.setSelection(index);
                         break;
                 }
             }
@@ -116,63 +117,75 @@ public class RegisterActivity extends AppCompatActivity {
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String account = editAccount.getText().toString();
-                String password = editPassword.getText().toString();
-                String ok_password = editOkPassword.getText().toString();
+                mAccount = mEditAccount.getText().toString();
+                mPassword = mEditPassword.getText().toString();
+                mOkPassword = mEditOkPassword.getText().toString();
                 String telRegex = "^[a-zA-Z0-9_-]{4,16}$";
                 //用户名、设置密码、确认密码有一个为空，则提示完善注册信息
-                if (TextUtils.isEmpty(account) || TextUtils.isEmpty(password) || TextUtils.isEmpty(ok_password)) {
-                    Toast.makeText(RegisterActivity.this, "请完善注册信息", Toast.LENGTH_SHORT).show();
-                    editAccount.setText("");
-                    editPassword.setText("");
-                    editOkPassword.setText("");
-                    editAccount.requestFocus();
-                    editAccount.setSelection(0);
+                if (TextUtils.isEmpty(mAccount) || TextUtils.isEmpty(mPassword) || TextUtils.isEmpty(mOkPassword)) {
+                    Toast.makeText(RegisterActivity.this, getString(R.string.finish_register_info), Toast.LENGTH_SHORT).show();
+                    setAccountFocus();
                     //三个编辑框都不为空，且输入的两次密码一致，此时查看密码格式是否符合正则表达式要求
-                } else if (!TextUtils.isEmpty(password) && !TextUtils.isEmpty(ok_password) && password.equals(ok_password)) {
-                    if (!password.matches(telRegex)) {
-                        Toast.makeText(RegisterActivity.this, "注册密码请输入4到16位 ", Toast.LENGTH_SHORT).show();
-                        editPassword.setText("");
-                        editOkPassword.setText("");
-                        editPassword.requestFocus();
-                        editPassword.setSelection(0);
+                } else if (!TextUtils.isEmpty(mPassword) && !TextUtils.isEmpty(mOkPassword) && mPassword.equals(mOkPassword)) {
+                    if (!mPassword.matches(telRegex)) {
+                        Toast.makeText(RegisterActivity.this, getString(R.string.password_match), Toast.LENGTH_SHORT).show();
+                        setPasswordFocus();
                         //查看用户名是否存在 存在提示用户名已存在，不存在提示注册成功
                     } else {
-                        dbHelper = new wanAndroidDBHelper(RegisterActivity.this, "wanAndroid.db", null, VERSION);
-                        db = dbHelper.getWritableDatabase();
-                        Cursor cursor = db.rawQuery("select * from User where userName=?", new String[]{account});
-                        if (cursor.moveToFirst()) {
-                            do {
-                                String userName = cursor.getString(cursor.getColumnIndex("userName"));
-                                Toast.makeText(RegisterActivity.this, "用户名 " + userName + " 已存在", Toast.LENGTH_SHORT).show();
-                            } while (cursor.moveToNext());
+                        mDBHelper = WanAndroidDBHelper.getInstance(RegisterActivity.this);
+                        mDB = mDBHelper.getWritableDatabase();
+                        Cursor cursor = null;
+                        try {
+                            cursor = mDB.rawQuery("select * from User where userName=?", new String[]{mAccount});
+                            if (cursor != null && cursor.getCount() != 0 && cursor.moveToFirst()) {
+                                String userName = cursor.getString(cursor.getColumnIndex(WanAndroidDBHelper.USER_NAME));
+                                Toast.makeText(RegisterActivity.this, userName + getString(R.string.username_exist), Toast.LENGTH_SHORT).show();
+                                cursor.close();
+                                setAccountFocus();
+                            } else {
+                                Toast.makeText(RegisterActivity.this, getString(R.string.register_success), Toast.LENGTH_SHORT).show();
+                                insertSQLiteDatabase();
+                                Intent i = new Intent(RegisterActivity.this, LoginActivity.class);
+                                startActivity(i);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
                             cursor.close();
-                            editAccount.setText("");
-                            editPassword.setText("");
-                            editOkPassword.setText("");
-                            editAccount.requestFocus();
-                            editAccount.setSelection(0);
-                        } else {
-                            Toast.makeText(RegisterActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
-                            ContentValues contentValues = new ContentValues();
-                            contentValues.put("userName", account);
-                            contentValues.put("passWord", password);
-                            db.insert("User", null, contentValues);
-                            contentValues.clear();
-                            Intent i = new Intent(RegisterActivity.this, LoginActivity.class);
-                            startActivity(i);
                         }
                     }
                     //三个编辑框都不为空，且两次密码不一致，则提示用户输入两次密码不一致
-                } else if (!TextUtils.isEmpty(password) && !TextUtils.isEmpty(ok_password) && !password.equals(ok_password)) {
-                    Toast.makeText(RegisterActivity.this, "两次密码不一致", Toast.LENGTH_SHORT).show();
-                    editAccount.setText("");
-                    editPassword.setText("");
-                    editOkPassword.setText("");
-                    editAccount.requestFocus();
-                    editAccount.setSelection(0);
+                } else if (!TextUtils.isEmpty(mPassword) && !TextUtils.isEmpty(mOkPassword) && !mPassword.equals(mOkPassword)) {
+                    Toast.makeText(RegisterActivity.this, getString(R.string.password_not_same), Toast.LENGTH_SHORT).show();
+                    setPasswordFocus();
                 }
             }
         });
+    }
+
+    //设置用户名编辑框光标位置
+    private void setAccountFocus() {
+        mEditAccount.setText("");
+        mEditPassword.setText("");
+        mEditOkPassword.setText("");
+        mEditAccount.requestFocus();
+        mEditAccount.setSelection(0);
+    }
+
+    //设置密码编辑框光标位置
+    private void setPasswordFocus() {
+        mEditPassword.setText("");
+        mEditOkPassword.setText("");
+        mEditPassword.requestFocus();
+        mEditPassword.setSelection(0);
+    }
+
+    //插入用户数据到数据库
+    private void insertSQLiteDatabase() {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(WanAndroidDBHelper.USER_NAME, mAccount);
+        contentValues.put(WanAndroidDBHelper.PASSWORD, mPassword);
+        mDB.insert(WanAndroidDBHelper.USER, null, contentValues);
+        contentValues.clear();
     }
 }

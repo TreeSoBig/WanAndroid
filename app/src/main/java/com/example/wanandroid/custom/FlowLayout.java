@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FlowLayout extends ViewGroup {
-    private static final String TAG = "FlowLayout";
     private static final int LEFT = -1;
     private static final int CENTER = 0;
     private static final int RIGHT = 1;
@@ -138,7 +137,6 @@ public class FlowLayout extends ViewGroup {
             lineHeight = Math.max(lineHeight, childHeight + lp.topMargin
                     + lp.bottomMargin);
             lineViews.add(child);
-
         }
         mLineHeight.add(lineHeight);
         mLineWidth.add(lineWidth);
@@ -148,9 +146,7 @@ public class FlowLayout extends ViewGroup {
 
         int left = getPaddingLeft();
         int top = getPaddingTop();
-
         int lineNum = mAllViews.size();
-
         for (int i = 0; i < lineNum; i++)
         {
             lineViews = mAllViews.get(i);

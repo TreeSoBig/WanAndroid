@@ -6,13 +6,19 @@ import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.example.wanandroid.utils.ThreadPoolManager;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class UrlImageView extends androidx.appcompat.widget.AppCompatImageView {
     public static final int GET_DATA_SUCCESS = 1;
     public static final int NETWORK_ERROR = 2;
@@ -50,9 +56,9 @@ public class UrlImageView extends androidx.appcompat.widget.AppCompatImageView {
     }
 
     //设置网络图片
-    public void setImageURL(final String path) {
-        //开启一个线程用于联网
-        new Thread() {
+    public void setImageURL(final String path,ThreadPoolManager threadPoolManager){
+        // 开启一个线程用于联网
+        Runnable task = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -86,7 +92,8 @@ public class UrlImageView extends androidx.appcompat.widget.AppCompatImageView {
                     handler.sendEmptyMessage(NETWORK_ERROR);
                 }
             }
-        }.start();
+        };
+        threadPoolManager.execute(task);
     }
 
 }

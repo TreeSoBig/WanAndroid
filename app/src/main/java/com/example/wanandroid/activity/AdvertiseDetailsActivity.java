@@ -7,48 +7,35 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.example.wanandroid.R;
+import com.example.wanandroid.fragment.AdvertiseFragment;
 
-import java.lang.reflect.Method;
-
-public class AdvertiseDetailsActivity extends BaseActivity {
-    private String Url;
-    private WebView mWebView;
-    private String mTitle;
+public class AdvertiseDetailsActivity extends AppCompatActivity {
+    private String mUrl;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentLayout(R.layout.activity_article_details);
-        Url = "";
-        mTitle = "";
-        mWebView = (WebView) findViewById(R.id.web_view);
-        mWebView.getSettings().setJavaScriptEnabled(true);
-        mWebView.setWebViewClient(new WebViewClient());
-        Url = getIntent().getStringExtra("Ban_data");
-        mTitle = getIntent().getStringExtra("title");
-        setTitle(mTitle);
+        setContentView(R.layout.activity_article_details);
+        mUrl = "";
+        WebView webView = findViewById(R.id.web_view);
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        mUrl = getIntent().getStringExtra(AdvertiseFragment.AD_DATA);
+        String title = getIntent().getStringExtra(AdvertiseFragment.AD_TITLE);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        mWebView.loadUrl(Url);
+        TextView articleName = findViewById(R.id.bar_title);
+        articleName.setText(title);
+        webView.loadUrl(mUrl);
     }
 
-   /* @Override
-    public boolean onMenuOpened(int featureId, Menu menu) {
-        if (menu != null) {
-            if (menu.getClass().getSimpleName().equalsIgnoreCase("MenuBuilder")) {
-                try {
-                    Method method = menu.getClass().getDeclaredMethod("setOptionalIconsVisible", Boolean.TYPE);
-                    method.setAccessible(true);
-                    method.invoke(menu, true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return super.onMenuOpened(featureId, menu);
-    }*/
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.share_menu, menu);
@@ -61,7 +48,7 @@ public class AdvertiseDetailsActivity extends BaseActivity {
             case R.id.toolbar_share: {
                 Intent sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, Url);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, mUrl);
                 sendIntent.setType("text/plain");
 
                 Intent shareIntent = Intent.createChooser(sendIntent, null);
@@ -70,7 +57,7 @@ public class AdvertiseDetailsActivity extends BaseActivity {
             break;
             case R.id.toolbar_open:
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse(Url));
+                intent.setData(Uri.parse(mUrl));
                 startActivity(intent);
                 break;
             case android.R.id.home:
