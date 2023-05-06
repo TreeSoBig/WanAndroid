@@ -6,6 +6,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Looper;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -68,6 +69,7 @@ public class SearchActivity extends AppCompatActivity {
         HttpUtils.sendOKHttpRequest(address, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Looper.prepare();
                 Toast.makeText(SearchActivity.this,getString(R.string.request_commonWeb_failure),Toast.LENGTH_SHORT).show();
             }
 

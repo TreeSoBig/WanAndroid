@@ -26,10 +26,12 @@ public class FloatButtonEvents {
                 }
             }
         });
+
         //悬浮按钮点击事件
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 Snackbar.make(view, "自动滑到最顶端", Snackbar.LENGTH_SHORT).setAction("OK", new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -51,4 +53,6 @@ public class FloatButtonEvents {
         });
 
     }
+
+
 }

@@ -23,6 +23,7 @@ import com.example.wanandroid.R;
 import com.example.wanandroid.bean.Advertise;
 import com.example.wanandroid.common.UrlConstainer;
 import com.example.wanandroid.utils.HttpUtils;
+import com.example.wanandroid.utils.ParseJsonUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
@@ -41,7 +42,6 @@ public class HomeFragment extends Fragment {
     private String mResponseData;
     private SwipeRefreshLayout mSwipeRefresh;
     private RecyclerView mRecyclerView;
-    private int page = 0;
     private ViewPager mViewPager;
     private List<AdvertiseFragment> mAdvertiseFragmentList;
     private List<Advertise> mAdvertiseData;
@@ -53,6 +53,7 @@ public class HomeFragment extends Fragment {
     public final static String URL="Url";
     public final static String TITLE="title";
     public final static String LINK="link";
+    private int page = 0;
 
     @Nullable
     @Override
@@ -84,59 +85,66 @@ public class HomeFragment extends Fragment {
                 Looper.prepare();
                 Toast.makeText(getActivity(), getString(R.string.get_advertise_failure), Toast.LENGTH_SHORT).show();
             }
-
             @SuppressLint("ResourceType")
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 mResponseData = response.body().string();
                 mAdvertiseData = new ArrayList<>();
-                try {
-                    JSONObject jsonObject = new JSONObject(mResponseData);
-                    JSONArray jsonArray = jsonObject.getJSONArray("data");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        jsonObject = jsonArray.getJSONObject(i);
-                        String imagePath = jsonObject.getString("imagePath");
-                        String text = jsonObject.getString("title");
-                        String link = jsonObject.getString("url");
-                        Advertise advertise = new Advertise(imagePath, text, link);
-                        mAdvertiseData.add(advertise);
-                    }
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            for (int i = 0; i < 3; i++) {
-                                AdvertiseFragment viewpager_fragment = new AdvertiseFragment();
-                                Bundle bundle = new Bundle();
-                                bundle.putString(URL, mAdvertiseData.get(i).getImagePath());
-                                bundle.putString(TITLE, mAdvertiseData.get(i).getTitle());
-                                bundle.putString(LINK, mAdvertiseData.get(i).getUrl());
-                                viewpager_fragment.setArguments(bundle);
-                                mAdvertiseFragmentList.add(viewpager_fragment);
-                            }
-                            mViewPager.setAdapter(new FragmentPagerAdapter(getChildFragmentManager()) {
-                                @NonNull
-                                @Override
-                                public Fragment getItem(int position) {
-                                    return mAdvertiseFragmentList.get(position);
-                                }
-
-                                @Override
-                                public int getCount() {
-                                    return mAdvertiseFragmentList.size();
-                                }
-                            });
-                        }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                getAdvertiseData(mAdvertiseData);
+                showAdvertise(mAdvertiseData);
             }
         });
     }
 
-    /**
-     * @param address 刷新文章列表
-     */
+    //得到json解析后的广告数据
+    private void getAdvertiseData(List<Advertise> mAdvertiseData){
+        try {
+            JSONObject jsonObject = new JSONObject(mResponseData);
+            JSONArray jsonArray = jsonObject.getJSONArray("data");
+            for (int i = 0; i < jsonArray.length(); i++) {
+                jsonObject = jsonArray.getJSONObject(i);
+                String imagePath = jsonObject.getString("imagePath");
+                String text = jsonObject.getString("title");
+                String link = jsonObject.getString("url");
+                Advertise advertise = new Advertise(imagePath, text, link);
+                mAdvertiseData.add(advertise);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //显示广告信息
+    private void showAdvertise(final List<Advertise> mAdvertiseData){
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < 3; i++) {
+                    AdvertiseFragment viewpager_fragment = new AdvertiseFragment();
+                    Bundle bundle = new Bundle();
+                    bundle.putString(URL, mAdvertiseData.get(i).getImagePath());
+                    bundle.putString(TITLE, mAdvertiseData.get(i).getTitle());
+                    bundle.putString(LINK, mAdvertiseData.get(i).getUrl());
+                    viewpager_fragment.setArguments(bundle);
+                    mAdvertiseFragmentList.add(viewpager_fragment);
+                }
+                mViewPager.setAdapter(new FragmentPagerAdapter(getChildFragmentManager()) {
+                    @NonNull
+                    @Override
+                    public Fragment getItem(int position) {
+                        return mAdvertiseFragmentList.get(position);
+                    }
+
+                    @Override
+                    public int getCount() {
+                        return mAdvertiseFragmentList.size();
+                    }
+                });
+            }
+        });
+    }
+
+    //刷新文章列表
     public void refreshArticle(String address) {
         HttpUtils.sendOKHttpRequest(address, new Callback() {
             @Override
@@ -154,44 +162,34 @@ public class HomeFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 mResponseData = response.body().string();
-                JSONObject jsonObject;
-                try{
-                    jsonObject = new JSONObject(mResponseData);
-                    jsonObject = jsonObject.getJSONObject("data");
-                    JSONArray jsonArray = jsonObject.getJSONArray("datas");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        jsonObject = jsonArray.getJSONObject(i);
-                        mArticleTitleList.add(jsonObject.getString("title"));
-                        mArticleAuthorList.add(jsonObject.getString("author"));
-                        mArticleLinkList.add(jsonObject.getString("link"));
-                        mArticleTimeList.add(jsonObject.getLong("publishTime"));
-                    }
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
-
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!mArticleTitleList.isEmpty()) {
-                            LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
-                            mRecyclerView.setLayoutManager(layoutManager);
-                            mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
-                            mArticleListAdapter.notifyDataSetChanged();
-                        } else {
-                            Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
-                        }
-                        //表示刷新事件结束
-                        mSwipeRefresh.setRefreshing(false);
-                        Toast.makeText(getActivity(), getString(R.string.refresh_success), Toast.LENGTH_SHORT).show();
-
-                    }
-                });
+                ParseJsonUtils.getArticleData(mResponseData,mArticleTitleList,mArticleAuthorList,mArticleLinkList,mArticleTimeList);
+                showRefreshArticle(mArticleTitleList,mArticleAuthorList,mArticleLinkList,mArticleTimeList);
             }
-
         });
     }
 
+    //显示文章信息
+    private void showRefreshArticle(List<String> mArticleTitleList,List<String> mArticleAuthorList,List<String> mArticleLinkList,List<Long>mArticleTimeList){
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!mArticleTitleList.isEmpty()) {
+                    LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+                    mRecyclerView.setLayoutManager(layoutManager);
+                    mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
+                    mArticleListAdapter.notifyDataSetChanged();
+                } else {
+                    Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
+                }
+                //表示刷新事件结束
+                mSwipeRefresh.setRefreshing(false);
+                Toast.makeText(getActivity(), getString(R.string.refresh_success), Toast.LENGTH_SHORT).show();
+
+            }
+        });
+    }
+
+    //从服务器获取文章数据
     private void queryFromServer(String address) {
         HttpUtils.sendOKHttpRequest(address, new Callback() {
             @Override
@@ -199,34 +197,24 @@ public class HomeFragment extends Fragment {
                 Looper.prepare();
                 Toast.makeText(getActivity(), getString(R.string.get_page_failure), Toast.LENGTH_SHORT).show();
             }
-
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 mResponseData = response.body().string();
-                JSONObject jsonObject;
-                try {
-                    jsonObject = new JSONObject(mResponseData);
-                    jsonObject = jsonObject.getJSONObject("data");
-                    JSONArray jsonArray = jsonObject.getJSONArray("datas");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        jsonObject = jsonArray.getJSONObject(i);
-                        mArticleTitleList.add(jsonObject.getString("title"));
-                        mArticleAuthorList.add(jsonObject.getString("author"));
-                        mArticleLinkList.add(jsonObject.getString("link"));
-                        mArticleTimeList.add(jsonObject.getLong("publishTime"));
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
-                        mRecyclerView.setLayoutManager(layoutManager);
-                        mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
-                        mRecyclerView.setAdapter(mArticleListAdapter);
-                    }
-                });
+                ParseJsonUtils.getArticleData(mResponseData,mArticleTitleList,mArticleAuthorList,mArticleLinkList,mArticleTimeList);
+                showArticle(mArticleTitleList,mArticleAuthorList,mArticleLinkList,mArticleTimeList);
+            }
+        });
+    }
+
+    //显示文章列表
+    private void showArticle(List<String> mArticleTitleList,List<String> mArticleAuthorList,List<String> mArticleLinkList,List<Long>mArticleTimeList){
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+                mRecyclerView.setLayoutManager(layoutManager);
+                mArticleListAdapter = new ArticleListAdapter(mArticleTitleList, mArticleAuthorList, mArticleLinkList, mArticleTimeList);
+                mRecyclerView.setAdapter(mArticleListAdapter);
             }
         });
     }

@@ -14,13 +14,13 @@ import com.example.wanandroid.R;
 import com.example.wanandroid.custom.UrlImageView;
 import com.example.wanandroid.utils.ThreadPoolManager;
 
-public class AdvertiseFragment extends Fragment {
-    private  ThreadPoolManager mThreadPool;
+public class AdvertiseFragment extends Fragment implements View.OnClickListener{
+    private String mTitle;
+    private String mLink;
     public static final String AD_DATA = "ad_data";
     public static final String AD_TITLE = "ad_title";
 
-    public AdvertiseFragment() {
-    }
+    public AdvertiseFragment() {}
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -30,27 +30,20 @@ public class AdvertiseFragment extends Fragment {
         TextView advertiseTitle = view.findViewById(R.id.tv_advertise);
         Bundle arguments = getArguments();
         String Url = arguments.getString(HomeFragment.URL);
-        String title = arguments.getString(HomeFragment.TITLE);
-        String link = arguments.getString(HomeFragment.LINK);
-        mThreadPool = ThreadPoolManager.getInstance();
-        advertiseImg.setImageURL(Url,mThreadPool);
-        advertiseTitle.setText(title);
-        advertiseImg.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), AdvertiseDetailsActivity.class);
-                intent.putExtra(AD_DATA,link);
-                intent.putExtra(AD_TITLE,title);
-                startActivity(intent);
-            }
-        });
-
+        mTitle = arguments.getString(HomeFragment.TITLE);
+        mLink = arguments.getString(HomeFragment.LINK);
+        advertiseImg.setImageURL(Url);
+        advertiseTitle.setText(mTitle);
+        advertiseImg.setOnClickListener(this);
         return view;
     }
 
+    //广告图片的点击事件
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mThreadPool.shutdown();
+    public void onClick(View view) {
+        Intent intent = new Intent(getActivity(), AdvertiseDetailsActivity.class);
+        intent.putExtra(AD_DATA,mLink);
+        intent.putExtra(AD_TITLE,mTitle);
+        startActivity(intent);
     }
 }

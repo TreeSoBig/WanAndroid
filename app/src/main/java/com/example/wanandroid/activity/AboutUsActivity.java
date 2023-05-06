@@ -4,9 +4,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.view.View;

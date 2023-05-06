@@ -18,6 +18,7 @@ import com.example.wanandroid.adapter.ArticleListAdapter;
 import com.example.wanandroid.application.MyApplication;
 import com.example.wanandroid.common.UrlConstainer;
 import com.example.wanandroid.utils.HttpUtils;
+import com.example.wanandroid.utils.ParseJsonUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -78,21 +79,7 @@ public class ChapterDetailsFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 mResponseData = response.body().string();
-                JSONObject jsonObject;
-                try {
-                    jsonObject = new JSONObject(mResponseData);
-                    jsonObject = jsonObject.getJSONObject("data");
-                    JSONArray jsonArray = jsonObject.getJSONArray("datas");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        jsonObject = jsonArray.getJSONObject(i);
-                        mArticleTitleList.add(jsonObject.getString("title"));
-                        mArticleAuthorList.add(jsonObject.getString("author"));
-                        mArticleLinkList.add(jsonObject.getString("link"));
-                        mArticleTimeList.add(jsonObject.getLong("publishTime"));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                ParseJsonUtils.getArticleData(mResponseData,mArticleTitleList,mArticleAuthorList,mArticleLinkList,mArticleTimeList);
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {

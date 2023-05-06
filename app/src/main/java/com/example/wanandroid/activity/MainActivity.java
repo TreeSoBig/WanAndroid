@@ -42,6 +42,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.wanandroid.R;
+import com.example.wanandroid.adapter.HomeViewPagerAdapter;
 import com.example.wanandroid.fragment.ChapterFragment;
 import com.example.wanandroid.fragment.HomeFragment;
 import com.example.wanandroid.utils.ImgTransUtils;
@@ -53,9 +54,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     private DrawerLayout mDrawerLayout;
     private TextView mTvName;
     private ImageView mImgAvatar;
@@ -64,12 +67,14 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager mContentViewPager;
     private BottomNavigationView mBottomNav;
     private TextView mTvTitle;
-    private  ThreadPoolManager mThreadPool;
     private final String PROVIDER_AUTHORITY="com.example.wanandroid.fileprovider";
     private final String IMAGE_CAPTURE_ACTION="android.media.action.IMAGE_CAPTURE";
     public static String USER_NAME_KEY="userName";
     private final String FILE_NAME="data";
     private Runnable task;
+    public static ExecutorService mThreadPool;
+
+
     @SuppressLint("ResourceType")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,11 +97,16 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         mFragmentList.add(homeFragment);
         mFragmentList.add(chapterFragment);
-        mThreadPool = ThreadPoolManager.getInstance();
+        mThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()+1);
 
         //设置缓存页面的数量
         mContentViewPager.setOffscreenPageLimit(mFragmentList.size());
-        mContentViewPager.setAdapter(new HomeViewPagerAdapter(getSupportFragmentManager()));
+        mContentViewPager.setAdapter(new HomeViewPagerAdapter(getSupportFragmentManager(),mFragmentList));
+
+        //侧滑页用户名点击事件
+        mTvName.setOnClickListener(this);
+        //侧滑页头像点击事件
+        mImgAvatar.setOnClickListener(this);
 
         //底部导航栏的子菜单项的点击事件
         mBottomNav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -123,12 +133,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
             }
-
             @Override
             public void onPageSelected(int position) {
                 mBottomNav.getMenu().getItem(position).setChecked(true);
             }
-
             @Override
             public void onPageScrollStateChanged(int state) {
             }
@@ -179,51 +187,55 @@ public class MainActivity extends AppCompatActivity {
                 mImgAvatar.setImageBitmap(bitmap);
             }
         }
-
-        //侧滑页用户名点击事件
-        mTvName.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(MainActivity.this, LoginActivity.class);
-                startActivity(i);
-            }
-        });
-
-        //侧滑页头像点击事件
-        try {
-            //imgAvatar = (ImageView) navigationView.getHeaderView(0).findViewById(R.id.img_avatar);
-            mImgAvatar.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (mTvName.getText().toString().equals(getString(R.string.Initially_userName))) {
-                        //此时用户未登录  点击头像跳转登陆界面
-                        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-                        startActivity(intent);
-                    } else {
-                        //用户已登录  点击头像更换头像  可选择在相册添加  也可选择使用手机拍照
-                        changeImage();
-                    }
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
-    class HomeViewPagerAdapter extends FragmentPagerAdapter {
-        public HomeViewPagerAdapter(@NonNull FragmentManager fm) {
-            super(fm);
-        }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search_menu, menu);
+        return true;
+    }
 
-        @NonNull
-        @Override
-        public Fragment getItem(int position) {
-            return mFragmentList.get(position);
+    //标题栏子控件 搜索控件、返回控件的点击事件
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.search: {
+                Intent intent = new Intent(MainActivity.this, SearchActivity.class);
+                startActivity(intent);
+            }
+            break;
+            case android.R.id.home:
+                mDrawerLayout.openDrawer(GravityCompat.START);
+                break;
+            default:
+                break;
         }
+        return true;
+    }
 
-        @Override
-        public int getCount() {
-            return mFragmentList.size();
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.tv_name:
+            {
+                if(mTvName.getText().equals(getString(R.string.Initially_userName))){
+                    Intent intent = new Intent(MainActivity.this,LoginActivity.class);
+                    startActivity(intent);
+                }
+            }
+            break;
+            case R.id.img_avatar:
+            {
+                if (mTvName.getText().toString().equals(getString(R.string.Initially_userName))) {
+                    //此时用户未登录  点击头像跳转登陆界面
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    startActivity(intent);
+                } else {
+                    //用户已登录  点击头像更换头像  可选择在相册添加  也可选择使用手机拍照
+                    changeImage();
+                }
+            }
+            break;
         }
     }
 
@@ -306,19 +318,15 @@ public class MainActivity extends AppCompatActivity {
                         task = new Runnable() {
                             @Override
                             public void run() {
-                                try {
                                     SharedPreferences.Editor editor = getSharedPreferences(FILE_NAME, MODE_PRIVATE).edit();
                                     String key = mTvName.getText().toString();
                                     editor.putString(key, ImgTransUtils.BitToStr(bitmap));
                                     editor.apply();
                                     Looper.prepare();
                                     Toast.makeText(MainActivity.this, getString(R.string.storage_picture_success), Toast.LENGTH_SHORT).show();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
                             }
                         };
-                        mThreadPool.execute(task);
+                        mThreadPool.submit(task);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -340,6 +348,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //解析4.4以后封装的Uri
     @TargetApi(19)
     private void handleImageOnKitKat(Intent data) {
         String imagePath = null;
@@ -365,11 +374,13 @@ public class MainActivity extends AppCompatActivity {
         displayImage(imagePath);
     }
 
+    //解析4.4之前的Uri
     private void handleImageBeforeKitKat(Intent data) {
         Uri uri = data.getData();
         String imagePath = getImagePath(uri, null);
         displayImage(imagePath);
     }
+
 
     @SuppressLint("Range")
     private String getImagePath(Uri uri, String selection) {
@@ -405,39 +416,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             };
-            mThreadPool.execute(task);
+            mThreadPool.submit(task);
         } else {
             Toast.makeText(this, getString(R.string.get_picture_failure), Toast.LENGTH_SHORT).show();
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.search_menu, menu);
-        return true;
-    }
-
-    //标题栏子控件 搜索控件、返回控件的点击事件
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.search: {
-                Intent intent = new Intent(MainActivity.this, SearchActivity.class);
-                startActivity(intent);
-            }
-            break;
-            case android.R.id.home:
-                mDrawerLayout.openDrawer(GravityCompat.START);
-                break;
-            default:
-                break;
-        }
-        return true;
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        mThreadPool.shutdown();
     }
 }

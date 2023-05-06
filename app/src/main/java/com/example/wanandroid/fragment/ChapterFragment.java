@@ -12,7 +12,7 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
 import com.example.wanandroid.R;
-import com.example.wanandroid.adapter.ChapterPagerAdapter;
+import com.example.wanandroid.adapter.ChapterViewPagerAdapter;
 import com.example.wanandroid.common.UrlConstainer;
 import com.example.wanandroid.utils.HttpUtils;
 import com.google.android.material.tabs.TabLayout;
@@ -82,7 +82,7 @@ public class ChapterFragment extends Fragment {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            mViewPager.setAdapter(new ChapterPagerAdapter(getChildFragmentManager(), mTitleList, mFragmentList));
+                            mViewPager.setAdapter(new ChapterViewPagerAdapter(getChildFragmentManager(), mTitleList, mFragmentList));
                         }
                     });
                 } catch (Exception e) {

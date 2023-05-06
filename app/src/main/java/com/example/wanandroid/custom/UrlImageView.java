@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.example.wanandroid.activity.MainActivity;
 import com.example.wanandroid.utils.ThreadPoolManager;
 
 import java.io.IOException;
@@ -56,7 +57,7 @@ public class UrlImageView extends androidx.appcompat.widget.AppCompatImageView {
     }
 
     //设置网络图片
-    public void setImageURL(final String path,ThreadPoolManager threadPoolManager){
+    public void setImageURL(final String path){
         // 开启一个线程用于联网
         Runnable task = new Runnable() {
             @Override
@@ -93,7 +94,7 @@ public class UrlImageView extends androidx.appcompat.widget.AppCompatImageView {
                 }
             }
         };
-        threadPoolManager.execute(task);
+        MainActivity.mThreadPool.submit(task);
     }
 
 }
