@@ -46,39 +46,7 @@ public class AboutUsActivity extends AppCompatActivity {
         });
         mVersionView =  findViewById(R.id.version);
         mIntroduceView =  findViewById(R.id.introduce);
-        setVersion();
-        setIntroduce();
 
     }
 
-    private void setIntroduce() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            mIntroduceView.setText(Html.fromHtml(getString(R.string.about_us_introduce), Html.FROM_HTML_MODE_LEGACY));
-        } else {
-            mIntroduceView.setText(Html.fromHtml(getString(R.string.about_us_introduce)));
-        }
-        //设置跳转
-        mIntroduceView.setMovementMethod(LinkMovementMethod.getInstance());
-
-    }
-    //设置版本
-    private void setVersion() {
-        String mVersionFormat = getString(R.string.version_format);
-        String mVersionName = AppUtils.getVersionName(this);
-        String mAppName = getString(R.string.app_name);
-        String mVersionStr = String.format(mVersionFormat, mAppName, mVersionName);
-        mVersionView.setText(mVersionStr);
-    }
-    public static final String KEY_ENABLE_SCREEN_CAP_LOCAL = "key_enable_screen_cap_local";
-    public static final String KEY_ENABLE_SCREEN_CAP_ONLINE = "key_enable_screen_cap_online";
-    public static final String KEY_IS_FIRST_ADD_COMMAND = "key_is_first_add_command";
-    public static final String KEY_IS_SAVE_FIRST_COMMAND_VIEW_POSITION = "key_is_save_first_command_view_position";
-    public static final int STATE_UNSET = -1;
-    private static void putScreenCapPrefIfNeed(Context context) {
-
-            // 历史原因将开关关闭设置成Setting.Global且值为0
-            int settingInt = Settings.Global.getInt(context.getContentResolver(), KEY_ENABLE_SCREEN_CAP_LOCAL, STATE_UNSET);
-
-            Settings.Global.putInt(context.getContentResolver(), TrainingConstants.KEY_ENABLE_VA_TEACHING, STATE_UNSET);
-        }
 }
