@@ -69,4 +69,16 @@ public class AboutUsActivity extends AppCompatActivity {
         String mVersionStr = String.format(mVersionFormat, mAppName, mVersionName);
         mVersionView.setText(mVersionStr);
     }
+    public static final String KEY_ENABLE_SCREEN_CAP_LOCAL = "key_enable_screen_cap_local";
+    public static final String KEY_ENABLE_SCREEN_CAP_ONLINE = "key_enable_screen_cap_online";
+    public static final String KEY_IS_FIRST_ADD_COMMAND = "key_is_first_add_command";
+    public static final String KEY_IS_SAVE_FIRST_COMMAND_VIEW_POSITION = "key_is_save_first_command_view_position";
+    public static final int STATE_UNSET = -1;
+    private static void putScreenCapPrefIfNeed(Context context) {
+
+            // 历史原因将开关关闭设置成Setting.Global且值为0
+            int settingInt = Settings.Global.getInt(context.getContentResolver(), KEY_ENABLE_SCREEN_CAP_LOCAL, STATE_UNSET);
+
+            Settings.Global.putInt(context.getContentResolver(), TrainingConstants.KEY_ENABLE_VA_TEACHING, STATE_UNSET);
+        }
 }
